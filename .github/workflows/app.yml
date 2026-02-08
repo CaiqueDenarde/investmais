@@ -1,30 +1,30 @@
 name: Atualiza Ativos
 
-# Gatilhos
 on:
-  workflow_dispatch:   # Permite rodar manualmente
+  # Executa manualmente e via push/merge
+  workflow_dispatch:
+
+  # Executa diariamente às 18h BRT (21h UTC)
   schedule:
-    - cron: "0 21 * * *"  # Todo dia às 21h UTC (18h BRT)
+    - cron: "0 21 * * *"
 
 jobs:
-  scraping:
-    # Usa imagem oficial do Playwright (Linux + Python + browsers)
+  build:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright/python:1.43.0-focal  # imagem oficial com libs necessárias
+      image: mcr.microsoft.com/playwright/python:1.43.0-focal
 
     steps:
       - name: Checar código
         uses: actions/checkout@v3
 
-      - name: Instalar dependências Python
+      - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Rodar scraping
-        run: |
-          python -m scraping.main
+        run: python -m scraping.main
 
       - name: Salvar JSONs analisados
         uses: actions/upload-artifact@v4
