@@ -15,26 +15,38 @@ HEADERS = {
     "Referer": "https://www.fundamentus.com.br/"
 }
 
-# ======== URLs do Fundamentus ========
+# ======== URLs e payloads ========
 URL_ACAO = "https://www.fundamentus.com.br/resultado.php"
 URL_FII = "https://www.fundamentus.com.br/fii_resultado.php"
 
+PAYLOAD_ACAO = {
+    "pl_min": "", "pl_max": "", "pvp_min": "", "pvp_max": "",
+    "psr_min": "", "psr_max": "", "divy_min": "", "divy_max": "",
+    "pativ_min": "", "pativ_max": "", "pcapgiro_min": "", "pcapgiro_max": "",
+    "pebit_min": "", "pebit_max": "", "fgrau_min": "", "fgrau_max": "",
+    "cresc_rec_min": "", "cresc_rec_max": ""
+}
+
+PAYLOAD_FII = {
+    "dividendo_min": "", "dividendo_max": "", "pl_min": "", "pl_max": "",
+    "pvp_min": "", "pvp_max": "", "dy_min": "", "dy_max": ""
+}
+
 # ======== Função interna para buscar tickers ========
-def _get_tickers_from_url(url: str):
-    r = requests.get(url, headers=HEADERS, timeout=20)
+def _get_tickers_from_url(url: str, payload: dict, debug_file: str):
+    r = requests.post(url, headers=HEADERS, data=payload, timeout=20)
     r.encoding = "ISO-8859-1"
     r.raise_for_status()
 
     # ======== Salva HTML de debug ========
-    filename = "debug_tickers.html"
-    with open(filename, "w", encoding="ISO-8859-1") as f:
+    """""
+    with open(debug_file, "w", encoding="ISO-8859-1") as f:
         f.write(r.text)
-    print(f"HTML salvo para debug em {os.path.abspath(filename)}")
-
+    print(f"HTML salvo para debug em {os.path.abspath(debug_file)}")
+    """
     soup = BeautifulSoup(r.text, "html.parser")
     tickers = []
 
-    # Cada linha da tabela representa um ativo
     table = soup.find("table")
     if not table:
         print("⚠️ Nenhuma tabela encontrada na página.")
@@ -54,20 +66,15 @@ def _get_tickers_from_url(url: str):
 
     return sorted(set(tickers))
 
-
 # ======== Função pública ========
 def get_all_tickers():
-    """
-    Retorna todos os tickers válidos, separados em AÇÕES e FIIs
-    """
     return {
-        "ACAO": _get_tickers_from_url(URL_ACAO),
-        "FII": _get_tickers_from_url(URL_FII)
+        "ACAO": _get_tickers_from_url(URL_ACAO, PAYLOAD_ACAO, "debug_tickers_acoes.html"),
+        "FII": _get_tickers_from_url(URL_FII, PAYLOAD_FII, "debug_tickers_fiis.html")
     }
-
 
 # ======== Teste rápido ========
 if __name__ == "__main__":
     tickers = get_all_tickers()
-    print("ACAO:", tickers["ACAO"][:10], "...")  # mostra os 10 primeiros
+    print("ACAO:", tickers["ACAO"][:10], "...")
     print("FII:", tickers["FII"][:10], "...")

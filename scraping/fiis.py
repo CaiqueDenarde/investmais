@@ -19,33 +19,44 @@ HEADERS = {
 # ======== URL do Fundamentus para FIIs ========
 URL_FIIS = "https://www.fundamentus.com.br/fii_resultado.php"
 
-# ======== Função para obter FIIs com retry e debug ========
+# ======== Payload vazio para POST ========
+PAYLOAD_FII = {
+    "dividendo_min": "",
+    "dividendo_max": "",
+    "pl_min": "",
+    "pl_max": "",
+    "pvp_min": "",
+    "pvp_max": "",
+    "dy_min": "",
+    "dy_max": "",
+}
+
 def get_fiis(retries=3, delay=5):
     last_exception = None
 
     for attempt in range(retries):
         try:
             print(f"Buscando FIIs... tentativa {attempt+1}")
-            r = requests.get(URL_FIIS, headers=HEADERS, timeout=20)
+            r = requests.post(URL_FIIS, headers=HEADERS, data=PAYLOAD_FII, timeout=20)
             r.encoding = "ISO-8859-1"
 
-            # ======== Salva HTML para debug ========
+            # Salva HTML para debug
+            """
             debug_file = os.path.join(os.path.dirname(__file__), "debug_fiis.html")
             with open(debug_file, "w", encoding="ISO-8859-1") as f:
                 f.write(r.text)
             print(f"HTML salvo em {debug_file}")
-
+            """
             soup = BeautifulSoup(r.text, "html.parser")
             table = soup.find("table")
-            
             if table is None:
-                print("⚠️ Aviso: Nenhuma tabela encontrada no HTML recebido.")
-                return []  # Retorna lista vazia
+                print("⚠️ Nenhuma tabela encontrada no HTML recebido.")
+                return []
 
             thead = table.find("thead")
             tbody = table.find("tbody")
             if thead is None or tbody is None:
-                print("⚠️ Aviso: Estrutura da tabela incompleta (thead/tbody).")
+                print("⚠️ Estrutura da tabela incompleta (thead/tbody).")
                 return []
 
             colunas = [th.get_text(strip=True) for th in thead.find_all("th")]
@@ -70,13 +81,9 @@ def get_fiis(retries=3, delay=5):
     raise last_exception
 
 
-# ======== Teste rápido ========
 if __name__ == "__main__":
-    try:
-        fiis = get_fiis()
-        if fiis:
-            print("Exemplo de FIIs:", fiis[:5])
-        else:
-            print("Nenhum dado de FIIs foi retornado. Verifique debug_fiis.html")
-    except Exception as e:
-        print("Erro crítico ao buscar FIIs:", e)
+    fiis = get_fiis()
+    if fiis:
+        print("Exemplo de FIIs:", fiis[:5])
+    else:
+        print("Nenhum dado de FIIs foi retornado.")

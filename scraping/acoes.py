@@ -16,36 +16,57 @@ HEADERS = {
     "Referer": "https://www.fundamentus.com.br/"
 }
 
-# ======== URL do Fundamentus ========
-URL_ACOES = "https://www.fundamentus.com.br/resultado.php"
+# ======== URL do Fundamentus para ações ========
+URL_ACAO = "https://www.fundamentus.com.br/resultado.php"
 
-# ======== Função para obter ações com retry e debug ========
+# ======== Payload vazio para POST ========
+PAYLOAD_ACAO = {
+    "pl_min": "",
+    "pl_max": "",
+    "pvp_min": "",
+    "pvp_max": "",
+    "psr_min": "",
+    "psr_max": "",
+    "divy_min": "",
+    "divy_max": "",
+    "pativ_min": "",
+    "pativ_max": "",
+    "pcapgiro_min": "",
+    "pcapgiro_max": "",
+    "pebit_min": "",
+    "pebit_max": "",
+    "fgrau_min": "",
+    "fgrau_max": "",
+    "cresc_rec_min": "",
+    "cresc_rec_max": "",
+}
+
 def get_acoes(retries=3, delay=5):
     last_exception = None
 
     for attempt in range(retries):
         try:
             print(f"Buscando ações... tentativa {attempt+1}")
-            r = requests.get(URL_ACOES, headers=HEADERS, timeout=20)
+            r = requests.post(URL_ACAO, headers=HEADERS, data=PAYLOAD_ACAO, timeout=20)
             r.encoding = "ISO-8859-1"
 
-            # ======== Salva HTML para debug ========
+            # Salva HTML para debug
+            """"
             debug_file = os.path.join(os.path.dirname(__file__), "debug_acoes.html")
             with open(debug_file, "w", encoding="ISO-8859-1") as f:
                 f.write(r.text)
             print(f"HTML salvo em {debug_file}")
-
+            """
             soup = BeautifulSoup(r.text, "html.parser")
             table = soup.find("table", {"id": "resultado"})
-            
             if table is None:
-                print("⚠️ Aviso: Tabela com id='resultado' não encontrada no HTML.")
-                return []  # Retorna lista vazia
+                print("⚠️ Tabela com id='resultado' não encontrada.")
+                return []
 
             thead = table.find("thead")
             tbody = table.find("tbody")
             if thead is None or tbody is None:
-                print("⚠️ Aviso: Estrutura da tabela incompleta (thead/tbody).")
+                print("⚠️ Estrutura da tabela incompleta (thead/tbody).")
                 return []
 
             colunas = [th.get_text(strip=True) for th in thead.find_all("th")]
@@ -70,13 +91,9 @@ def get_acoes(retries=3, delay=5):
     raise last_exception
 
 
-# ======== Teste rápido ========
 if __name__ == "__main__":
-    try:
-        acoes = get_acoes()
-        if acoes:
-            print("Exemplo de ações:", acoes[:5])
-        else:
-            print("Nenhum dado de ações foi retornado. Verifique debug_acoes.html")
-    except Exception as e:
-        print("Erro crítico ao buscar ações:", e)
+    acoes = get_acoes()
+    if acoes:
+        print("Exemplo de ações:", acoes[:5])
+    else:
+        print("Nenhum dado de ações foi retornado.")
