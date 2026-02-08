@@ -1,7 +1,6 @@
 name: Atualiza Ativos
 
 on:
-  # Executa manualmente e via cron diário
   workflow_dispatch:
   schedule:
     - cron: "0 21 * * *"  # 18h BRT = 21h UTC
@@ -23,18 +22,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install playwright  # garante que Playwright esteja disponível
+          pip install playwright
 
-      - name: Instalar dependências do Linux para Playwright
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libnss3 libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 \
-            libxrandr2 libgtk-3-0 libgbm1 libasound2 libcups2 libxss1 \
-            libxshmfence1 libpangocairo-1.0-0 libatk1.0-0 libdrm2 \
-            libwayland-client0 libwayland-server0 libegl1 libopus0
-
-      - name: Instalar browsers do Playwright
+      - name: Instalar Chromium do Playwright
         run: |
           python -m playwright install chromium
 
