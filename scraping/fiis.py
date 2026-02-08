@@ -1,38 +1,25 @@
 # fiis.py
 from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup
 
-URL_FII = "https://www.fundamentus.com.br/fii_resultado.php"
+URL = "https://www.fundamentus.com.br/fii_resultado.php"
 
 def get_fiis():
-    """
-    Coleta todos os FIIs do Fundamentus usando Playwright.
-    """
+    resultados = []
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-        page.goto(URL_FII)
+        page.goto(URL, timeout=60000)
+        page.wait_for_selector("table", timeout=60000)  # a tabela dos FIIs não tem id
 
-        # Espera a primeira tabela carregar
-        page.wait_for_selector("table")
+        rows = page.query_selector_all("table tbody tr")
+        headers = [th.inner_text().strip() for th in page.query_selector_all("table thead th")]
+        if headers:
+            headers[0] = "Fii"
 
-        html = page.content()
-
-        soup = BeautifulSoup(html, "html.parser")
-        table = soup.find("table")
-        thead = table.find("thead")
-        tbody = table.find("tbody")
-
-        colunas = [th.get_text(strip=True) for th in thead.find_all("th")]
-        if colunas:
-            colunas[0] = "Fii"
-
-        dados = []
-        for tr in tbody.find_all("tr"):
-            cols = [td.get_text(strip=True) for td in tr.find_all("td")]
+        for row in rows:
+            cols = row.query_selector_all("td")
             if cols:
-                dados.append(dict(zip(colunas, cols)))
+                resultados.append({headers[i]: cols[i].inner_text().strip() for i in range(len(cols))})
 
         browser.close()
-        print(f"Quantidade de FIIs Encontrados: {len(dados)}")
-        return dados
+    return resultados

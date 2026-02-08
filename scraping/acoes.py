@@ -1,38 +1,26 @@
 # acoes.py
 from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup
 
-URL_ACAO = "https://www.fundamentus.com.br/resultado.php"
+URL = "https://www.fundamentus.com.br/resultado.php"
 
 def get_acoes():
-    """
-    Coleta todas as ações do Fundamentus usando Playwright.
-    """
+    resultados = []
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+        browser = p.chromium.launch(headless=True)  # headless para rodar no GitHub
         page = browser.new_page()
-        page.goto(URL_ACAO)
+        page.goto(URL, timeout=60000)  # espera até 60s para carregar
+        page.wait_for_selector("table#resultado", timeout=60000)  # espera a tabela
 
-        # Espera a tabela carregar
-        page.wait_for_selector("table#resultado")
+        # coleta os dados
+        rows = page.query_selector_all("table#resultado tbody tr")
+        headers = [th.inner_text().strip() for th in page.query_selector_all("table#resultado thead th")]
+        if headers:
+            headers[0] = "Ação"
 
-        html = page.content()
-
-        soup = BeautifulSoup(html, "html.parser")
-        table = soup.find("table", {"id": "resultado"})
-        thead = table.find("thead")
-        tbody = table.find("tbody")
-
-        colunas = [th.get_text(strip=True) for th in thead.find_all("th")]
-        if colunas:
-            colunas[0] = "Ação"
-
-        dados = []
-        for tr in tbody.find_all("tr"):
-            cols = [td.get_text(strip=True) for td in tr.find_all("td")]
+        for row in rows:
+            cols = row.query_selector_all("td")
             if cols:
-                dados.append(dict(zip(colunas, cols)))
+                resultados.append({headers[i]: cols[i].inner_text().strip() for i in range(len(cols))})
 
         browser.close()
-        print(f"Quantidade de Ações Encontradas: {len(dados)}")
-        return dados
+    return resultados
