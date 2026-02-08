@@ -1,19 +1,19 @@
 name: Atualiza Ativos
 
 on:
+  # Executa manualmente e via pull/merge
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  
+  # Executa diariamente às 18h BRT (21h UTC)
+  schedule:
+    - cron: "0 21 * * *"  # minuto hora dia mês dia-da-semana (UTC)
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    env:
-      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-      ENCRYPTED_ACAO: ${{ secrets.ENCRYPTED_ACAO }}
-      ENCRYPTED_FII: ${{ secrets.ENCRYPTED_FII }}
 
     steps:
       - name: Checar código
