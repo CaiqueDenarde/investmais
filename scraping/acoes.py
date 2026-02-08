@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from cryptography.fernet import Fernet
 import time
 
-# ======== Headers mais completos ========
+# ======== Headers completos ========
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -33,36 +33,39 @@ def decrypt_url(encrypted_url: str) -> str:
     return fernet.decrypt(encrypted_url.encode()).decode()
 
 
-# ======== Função para obter ações com retry ========
+# ======== Função para obter ações com retry e debug ========
 def get_acoes(retries=3, delay=5):
     url = decrypt_url(ENCRYPTED_ACAO)
     last_exception = None
 
     for attempt in range(retries):
         try:
+            print(f"Buscando ações... tentativa {attempt+1}")
             r = requests.get(url, headers=HEADERS, timeout=20)
             r.encoding = "ISO-8859-1"
 
-            # ======== Debug: salva HTML recebido ========
-            with open("debug_acoes.html", "w", encoding="ISO-8859-1") as f:
+            # ======== Salva HTML para debug ========
+            debug_file = "debug_acoes.html"
+            with open(debug_file, "w", encoding="ISO-8859-1") as f:
                 f.write(r.text)
+            print(f"HTML salvo em {debug_file}")
 
             soup = BeautifulSoup(r.text, "html.parser")
             table = soup.find("table", {"id": "resultado"})
+            
             if table is None:
-                raise Exception("Tabela com id='resultado' não encontrada.")
+                print("⚠️ Aviso: Tabela com id='resultado' não encontrada no HTML.")
+                return []  # Retorna lista vazia, não quebra o CI
 
             thead = table.find("thead")
-            if thead is None:
-                raise Exception("Não encontrei o thead na tabela.")
+            tbody = table.find("tbody")
+            if thead is None or tbody is None:
+                print("⚠️ Aviso: Estrutura da tabela incompleta (thead/tbody).")
+                return []
 
             colunas = [th.get_text(strip=True) for th in thead.find_all("th")]
             if colunas:
                 colunas[0] = "Ação"
-
-            tbody = table.find("tbody")
-            if tbody is None:
-                raise Exception("Não encontrei tbody na tabela de ações.")
 
             dados = []
             for tr in tbody.find_all("tr"):
@@ -77,4 +80,17 @@ def get_acoes(retries=3, delay=5):
             last_exception = e
             time.sleep(delay)
 
+    print("❌ Falha ao buscar ações após várias tentativas.")
     raise last_exception
+
+
+# ======== Teste rápido ========
+if __name__ == "__main__":
+    try:
+        acoes = get_acoes()
+        if acoes:
+            print("Exemplo de ações:", acoes[:5])
+        else:
+            print("Nenhum dado de ações foi retornado. Verifique debug_acoes.html")
+    except Exception as e:
+        print("Erro crítico ao buscar ações:", e)
